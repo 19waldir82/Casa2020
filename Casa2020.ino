@@ -60,6 +60,33 @@ String index1 =
     "<head>"
       "<title>Minha Casa</title>"
       "<meta charset='UTF-8'>"
+
+      "<style>"
+        "body{"
+          "text-align: center;"
+          "font-family: sans-serif;"
+          "font-size:14px;"
+          "padding: 25px;"
+        "}"
+
+        "p{"
+          "color:#444;"
+        "}"
+
+        "button{"
+          "outline: none;"
+          "border: 2px solid #1fa3ec;"
+          "border-radius:18px;"
+          "background-color:#FFF;"
+          "color: #1fa3ec;"
+          "padding: 10px 50px;"
+        "}"
+
+        "button:active{"
+          "color: #FFF;"
+          "background-color:#F60;"
+        "}"
+      "</style>"
     "</head>"
     
     "<body>"
