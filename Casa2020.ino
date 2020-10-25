@@ -1,6 +1,3 @@
-
-#include <SPI.h>
-#include <MFRC522.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -38,7 +35,7 @@ const char* ssid = "Thuliv";
 const char* password = "90iojknm";
 
 //Parâmetros de rede
-IPAddress ip(192, 168, 1, 250);
+IPAddress ip(192, 168, 1, 254);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
@@ -112,6 +109,30 @@ void IRAM_ATTR resetModule(){
 
 void setup(void)
 {
+  pinMode(pinLuzPia, OUTPUT);
+  pinMode(pinLuzSala, OUTPUT);
+  pinMode(pinChuveiro, OUTPUT);
+  pinMode(pinLuzBanheiro, OUTPUT);
+  pinMode(pinLuzQ1, OUTPUT);
+  pinMode(pinLuzQ2, OUTPUT);
+  pinMode(pinLuzCozinha, OUTPUT);
+  pinMode(pinLuzMesa, OUTPUT); 
+  pinMode(pinLuzEscada, OUTPUT);
+  pinMode(sensorPB, INPUT);
+  pinMode(sensorPE, INPUT);
+  pinMode(sensorIRC, INPUT);
+  pinMode(sensorPS, INPUT);
+
+  digitalWrite(pinLuzPia, HIGH);
+  digitalWrite(pinLuzSala, HIGH);
+  digitalWrite(pinChuveiro, LOW);
+  digitalWrite(pinLuzBanheiro, HIGH);
+  digitalWrite(pinLuzQ1, HIGH);
+  digitalWrite(pinLuzQ2, HIGH);
+  digitalWrite(pinLuzCozinha, HIGH);
+  digitalWrite(pinLuzMesa, HIGH);
+  digitalWrite(pinLuzEscada, HIGH);
+  
   Serial.begin(115200); //Serial para debug
 
   WiFi.mode(WIFI_AP_STA); //Comfigura o ESP32 como ponto de acesso e estação
@@ -129,9 +150,6 @@ void setup(void)
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-
-  MDNS.begin("talkinghome");
- 
 
   if (WiFi.status() == WL_CONNECTED) //aguarda a conexão
   {
