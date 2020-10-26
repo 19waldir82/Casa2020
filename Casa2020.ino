@@ -2,7 +2,6 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <Update.h>
-#include <ESPmDNS.h>
 
 #define pinLuzPia 13
 #define pinLuzSala 12
