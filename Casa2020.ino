@@ -50,8 +50,6 @@ const String INFOS = VERSION + CHIP_ID;
 //Sinalizador de autorização do OTA
 boolean OTA_AUTORIZADO = false;
 
-//inicia o servidor na porta selecionada
-//aqui testamos na porta 3000, ao invés da 80 padrão
 WebServer server(80);
 
 String index1 = 
@@ -161,13 +159,13 @@ void setup(void)
   digitalWrite(pinLuzMesa, HIGH);
   digitalWrite(pinLuzEscada, HIGH);
   
-  Serial.begin(115200); //Serial para debug
+  Serial.begin(115200); 
 
-  WiFi.mode(WIFI_AP_STA); //Comfigura o ESP32 como ponto de acesso e estação
+  WiFi.mode(WIFI_AP_STA); 
 
-  WiFi.begin(ssid, password);// inicia a conexão com o WiFi
+  WiFi.begin(ssid, password);
 
-  // Wait for connection
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -179,65 +177,53 @@ void setup(void)
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  if (WiFi.status() == WL_CONNECTED) //aguarda a conexão
+  if (WiFi.status() == WL_CONNECTED) 
   {
-    //atende uma solicitação para a raiz
-    // e devolve a página 'verifica'
-    server.on("/", HTTP_GET, []() //atende uma solicitação para a raiz
+    server.on("/", HTTP_GET, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
     });
 
-    //atende uma solicitação para a página avalia
     server.on("/arquivo", HTTP_POST, [] ()
     {
-      Serial.println("Em server.on /avalia: args= " + String(server.arg("autorizacao"))); //somente para debug
+      Serial.println("Em server.on /avalia: args= " + String(server.arg("autorizacao"))); 
 
-      if (server.arg("autorizacao") != "90iojknm") // confere se o dado de autorização atende a avaliação
+      if (server.arg("autorizacao") != "90iojknm") 
       {
-        //se não atende, serve a página indicando uma falha
         server.sendHeader("Connection", "close");
         server.send(200, "text/html", chaveIncorreta);
-        //ESP.restart();
       }
       else
       {
-        //se atende, solicita a página de índice do servidor
-        // e sinaliza que o OTA está autorizado
         OTA_AUTORIZADO = true;
         server.sendHeader("Connection", "close");
         server.send(200, "text/html", index2);
       }
     });
 
-    //serve a página de indice do servidor
-    //para seleção do arquivo
     server.on("/index2", HTTP_GET, []()
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index2);
     });
 
-    //tenta iniciar a atualização . . .
     server.on("/update", HTTP_POST, []()
     {
-      //verifica se a autorização é false.
-      //Se for falsa, serve a página de erro e cancela o processo.
+
       if (OTA_AUTORIZADO == false)
       {
         server.sendHeader("Connection", "close");
         server.send(200, "text/html", chaveIncorreta);
         return;
       }
-      //Serve uma página final que depende do resultado da atualização
+
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", (Update.hasError()) ? chaveIncorreta : atualizado);
       delay(1000);
       ESP.restart();
     }, []()
     {
-      //Mas estiver autorizado, inicia a atualização
       HTTPUpload& upload = server.upload();
       if (upload.status == UPLOAD_FILE_START)
       {
@@ -245,7 +231,6 @@ void setup(void)
         Serial.printf("Atualizando: %s\n", upload.filename.c_str());
         if (!Update.begin())
         {
-          //se a atualização não iniciar, envia para serial mensagem de erro.
           Update.printError(Serial);
         }
       }
@@ -253,7 +238,6 @@ void setup(void)
       {
         if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
         {
-          //se não conseguiu escrever o arquivo, envia erro para serial
           Update.printError(Serial);
         }
       }
@@ -261,19 +245,16 @@ void setup(void)
       {
         if (Update.end(true))
         {
-          //se finalizou a atualização, envia mensagem para a serial informando
           Serial.printf("Atualização bem sucedida! %u\nReiniciando...\n", upload.totalSize);
         }
         else
         {
-          //se não finalizou a atualização, envia o erro para a serial.
           Update.printError(Serial);
         }
         Serial.setDebugOutput(false);
       }
       else
       {
-        //se não conseguiu identificar a falha no processo, envia uma mensagem para a serial
         Serial.printf("Atualização falhou inesperadamente! (possivelmente a conexão foi perdida.): status=%d\n", upload.status);
       }
     });
@@ -316,14 +297,22 @@ void setup(void)
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinChuveiro, HIGH);
+      chuveiro(true);
+     luzbanhChuv = true;
+     saidaBanho(false);
+     LuzBanheiroOnApp = false;
+     sensorBanheiroOn = false;
     });
     
     server.on("/lChuveiro", HTTP_POST, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinChuveiro, HIGH);
+      chuveiro(true);
+     luzbanhChuv = true;
+     saidaBanho(false);
+     LuzBanheiroOnApp = false;
+     sensorBanheiroOn = false;
     });
 
 
@@ -333,14 +322,18 @@ void setup(void)
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinChuveiro, LOW);
+      chuveiro(false);
+      saidaBanho(true);
+      luzbanhChuv = false;
     });
     
     server.on("/dChuveiro", HTTP_POST, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinChuveiro, LOW);
+      chuveiro(false);
+      saidaBanho(true);
+      luzbanhChuv = false;
     });
 
 //////////ligar luz da sala///////////
@@ -381,14 +374,14 @@ void setup(void)
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzBanheiro, LOW);
+      LuzBanheiroOnApp = true;
     });
     
     server.on("/lLBanheiro", HTTP_POST, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzBanheiro, LOW);
+      LuzBanheiroOnApp = true;
     });
 
 //////////desigar luz do banheiro///////////
@@ -397,14 +390,14 @@ void setup(void)
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzBanheiro, HIGH);
+      LuzBanheiroOnApp = false;
     });
     
     server.on("/dLBanheiro", HTTP_POST, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzBanheiro, HIGH);
+      LuzBanheiroOnApp = false;
     });
 
 //////////ligar luz Q1///////////
@@ -541,14 +534,14 @@ void setup(void)
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzEscada, LOW);
+      luzEscApp = true;
     });
     
     server.on("/lLEscada", HTTP_POST, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzEscada, LOW);
+      luzEscApp = true;
     });
 
 //////////desligar luz da escada///////////
@@ -557,14 +550,14 @@ void setup(void)
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzEscada, HIGH);
+      luzEscApp = false;
     });
     
     server.on("/dLEscada", HTTP_POST, []() 
     {
       server.sendHeader("Connection", "close");
       server.send(200, "text/html", index1);
-      digitalWrite (pinLuzEscada, HIGH);
+      luzEscApp = false;
     });
 
     server.begin(); //inicia o servidor
@@ -579,8 +572,80 @@ void setup(void)
 }
 
 
-void loop(void)
-{
+void luzEscada(boolean onOff){
+   if (onOff){
+      digitalWrite (pinLuzEscada, LOW);
+    }else{
+      digitalWrite (pinLuzEscada, HIGH);
+    }
+  }
+
+void SensorEscada(){
+  boolean sensEsc;
+  sensEsc = digitalRead (sensorPE);
+
+  if (sensEsc || luzEscApp){
+     luzEscada(true);
+    } else {
+        luzEscada(false);
+ }
+}
+
+
+void sensorBanheiro(){
+  boolean sensBanh;
+  sensBanh = digitalRead (sensorPB);
+  
+  if (sensorBanheiroOn  && sensBanh || LuzBanheiroOnApp || luzbanhChuv || saidaBan){
+        luzBanheiro(true);
+  }
+  else {
+        luzBanheiro(false);
+ }
+}
+
+
+void saidaBanho(boolean saidaBanho1){
+  if (saidaBanho1){
+     if ((millis() - tempoSB) >= 120001){
+        tempoSB = millis();
+        saidaBan = true;
+  }
+ }
+}
+
+
+void luzBanheiro(boolean onOff){
+   if (onOff){
+      digitalWrite (pinLuzBanheiro, LOW); 
+    } else {
+      digitalWrite (pinLuzBanheiro, HIGH);
+      }
+  }
+
+
+void chuveiro(boolean onOff){
+   if (onOff){
+      digitalWrite (pinChuveiro, HIGH);
+    } else {
+      digitalWrite (pinChuveiro, LOW);
+      saidaBanho(true);
+      }
+  }
+
+
+void temporizador(){
+  if ((millis() - tempoSB) == 120000){
+     sensorBanheiroOn = true;
+     saidaBan = false;
+  }
+}
+
+
+void loop(void){
   server.handleClient();
   timerWrite(timer, 0);
+  SensorEscada();
+  sensorBanheiro();
+  temporizador();
 }
